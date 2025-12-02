@@ -1,0 +1,50 @@
+# -------------------------
+# Dependency Directories
+# -------------------------
+/node_modules
+/jspm_packages
+package-lock.json
+
+# -------------------------
+# Logs and Runtime
+# -------------------------
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+*.pid
+*.seed
+*.lock
+
+# -------------------------
+# Configuration/Environment
+# -------------------------
+# Stores sensitive data (API keys, ports, credentials)
+.env
+.env.local
+.env.development
+.env.production
+
+# -------------------------
+# IDE and System Files
+# -------------------------
+.DS_Store             # macOS system files
+.idea/                # WebStorm/IntelliJ
+.vscode/              # VS Code settings (unless shared)
+*~                    # Vim/Emacs backup files
+# Thumbs.db           # Windows system files
+
+# -------------------------
+# Build/Distribution (if you ever compile TypeScript or use a build step)
+# -------------------------
+/dist
+/build
+
+# -------------------------
+# Firebase/Firestore Specific
+# -------------------------
+# Firebase admin service account key file (highly sensitive!)
+# NEVER commit this key file.
+# Replace 'service-account-key.json' with your actual filename if different.
+service-account-key.json
+firebase-debug.log
