@@ -1,3 +1,8 @@
+const { db, admin } = require("../config/firebaseConfig");
+const { getCountryFromIP } = require("../utils/geolocation");
+
+const usersCollection = db.collection("users");
+
 exports.serverStatus = (req, res) => {
   res.status(200).json({
     message: "Welcome to the app",
@@ -15,24 +20,57 @@ exports.registerUser = async (req, res) => {
       .json({ message: "Missing required user information." });
   }
 
-  //capturing the user IP
-  const clientIP = req.ip;
+  try {
+    // checking for the same name
+    const activeUsersSnapshot = await usersCollection
+      .where("name", "==", name)
+      .where("status", "==", "Active") // Only for the check against currently active users
+      .limit(1)
+      .get();
 
-  //For country pouplation, current it's not there
-  let country = "Unkown";
+    if (!activeUsersSnapshot.empty) {
+      return res.status(409).json({
+        message: `The name "${name}" is already active. Please choose another one.`,
+      });
+    }
 
-  const userData = {
-    name,
-    age,
-    gender,
-    ip: clientIP,
-    country: country,
-  };
+    const clientIp = req.ip;
+    const geoData = await getCountryFromIP("24.48.0.1");
 
-  console.log("Received Guest User Registration:", userData);
+    // to generate a simple unique ID for this guest session
+    const authId = usersCollection.doc().id;
 
-  res.status(200).json({
-    message: "Registration data received successfully (No DB storage yet).",
-    user: userData,
-  });
+    // to create a user
+    const newUserData = {
+      authId: authId,
+      name: name,
+      age: parseInt(age),
+      gender: gender,
+      country: geoData?.country,
+      userGeoData: geoData,
+      isGuest: true,
+      status: "Active",
+      lastActive: admin.firestore.Timestamp.now(),
+      createdAt: admin.firestore.Timestamp.now(),
+    };
+
+    // Adding the new user to the Firestore 'users' collection
+    await usersCollection.doc(authId).set(newUserData);
+
+    console.log(`New Guest Registered: ${name} (ID: ${authId})`);
+
+    res.status(200).json({
+      message: "Guest registration successful.",
+      user: {
+        authId: newUserData.authId,
+        name: newUserData.name,
+        country: newUserData.country,
+      },
+    });
+  } catch (error) {
+    console.error("Registration Error:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error during registration." });
+  }
 };
