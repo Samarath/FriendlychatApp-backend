@@ -2,6 +2,7 @@ const { db, admin } = require("../config/firebaseConfig");
 const { getCountryFromIP } = require("../utils/geolocation");
 
 const usersCollection = db.collection("users");
+const chatsCollection = db.collection("chats");
 
 exports.serverStatus = (req, res) => {
   res.status(200).json({
@@ -72,5 +73,39 @@ exports.registerUser = async (req, res) => {
     res
       .status(500)
       .json({ message: "Internal server error during registration." });
+  }
+};
+
+exports.markChatAsRead = async (req, res) => {
+  const { chatId, userId } = req.body;
+
+  if (!chatId || !userId) {
+    return res.status(400).json({ message: "Missing chatId or userId." });
+  }
+
+  const chatRef = chatsCollection.doc("chats");
+  const unreadCountField = `unreadCount_${userId}`;
+
+  try {
+    // Using a transaction to ensure we only proceed if the chat exists
+    await db.runTransaction(async (transaction) => {
+      const chatDoc = await transaction.get(chatRef);
+
+      if (!chatDoc.exists) {
+        throw new Error("Chat not found.");
+      }
+      // Resetting the specific user's unread counter to 0
+      transaction.update(chatRef, {
+        [unreadCountField]: 0,
+      });
+    });
+    console.log(`Unread count reset for user ${userId} in chat ${chatId}`);
+    res.status(200).json({ message: "Chat marked as read." });
+  } catch (error) {
+    console.error("Error marking chat as read:", error.message);
+    res.status(error.message === "Chat not found." ? 404 : 500).json({
+      message: "Failed to mark chat as read.",
+      error: error.message,
+    });
   }
 };
